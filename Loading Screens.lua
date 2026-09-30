@@ -2,9 +2,8 @@
 -- Loading Screens | HzReyzn Hub
 -- Client-side visual intro. Appearance: 0.3 s; loading: 5 s; exit: 2.1 s.
 -- The five-second bar is an intro timer, not a measure of game asset loading.
--- GitHub PNGs use getcustomasset/getsynasset + writefile in compatible clients.
--- For Roblox Studio: upload the two PNGs and set the two asset IDs below,
--- then place this code in a LocalScript in StarterPlayerScripts.
+-- Uses the Roblox background and logo IDs supplied by hzReyzn.
+-- For Roblox Studio, use a LocalScript in StarterPlayerScripts.
 
 local CONFIG = {
     AppearTime = 0.3,
@@ -12,10 +11,9 @@ local CONFIG = {
     ExitTime = 2.1,
     FlashInterval = 3,
     FlashOpacity = 0.10,
-    BackgroundAssetId = "",
-    LogoAssetId = "",
-    AssetBase = "https://raw.githubusercontent.com/hzReyzn/crazy/main/assets/loading-screens/",
-    CacheVersion = "20260930a",
+    BackgroundAssetId = "rbxassetid://89640728908311",
+    LogoAssetId = "rbxassetid://80679809117691",
+    FrameDepth = 0.18, -- inward glow depth relative to the shorter screen edge
 }
 
 local Players = game:GetService("Players")
@@ -129,10 +127,10 @@ root.ClipsDescendants = true
 
 local background = node("ImageLabel", {
     Name = "Background", AnchorPoint = Vector2.new(0.5, 0.5),
-    ScaleType = Enum.ScaleType.Stretch, ZIndex = 2,
+    Image = CONFIG.BackgroundAssetId, ScaleType = Enum.ScaleType.Stretch, ZIndex = 2,
 }, root)
 opacity(background, "ImageTransparency", 1, "background")
-local shade = frame(root, "CinematicShade", 3, BLACK, 0.44)
+local shade = frame(root, "CinematicShade", 3, BLACK, 0.31)
 shade.Size = UDim2.fromScale(1, 1)
 gradient(shade, 0, ColorSequence.new(WHITE), NumberSequence.new({
     NumberSequenceKeypoint.new(0, 0.58),
@@ -140,7 +138,7 @@ gradient(shade, 0, ColorSequence.new(WHITE), NumberSequence.new({
     NumberSequenceKeypoint.new(0.74, 0.16),
     NumberSequenceKeypoint.new(1, 0),
 }))
-local bottomShade = frame(root, "BottomShade", 4, BLACK, 0.78)
+local bottomShade = frame(root, "BottomShade", 4, BLACK, 0.64)
 bottomShade.Size = UDim2.fromScale(1, 1)
 gradient(bottomShade, 90, ColorSequence.new(WHITE), NumberSequence.new({
     NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.65, 1),
@@ -208,16 +206,9 @@ logoHolder.AnchorPoint = Vector2.new(0.5, 0.5)
 local logoScale = node("UIScale", { Scale = 1 }, logoHolder)
 local logo = node("ImageLabel", {
     Name = "HzReyznHub", Size = UDim2.fromScale(1, 1),
-    ScaleType = Enum.ScaleType.Fit, ZIndex = 13,
+    Image = CONFIG.LogoAssetId, ScaleType = Enum.ScaleType.Fit, ZIndex = 13,
 }, logoHolder)
 opacity(logo, "ImageTransparency", 1, "logo")
-local fallback, fallbackAlpha = label(logoHolder, "WordmarkFallback", "HzReyzn Hub", 42, WHITE, 12)
-fallback.Size = UDim2.fromScale(0.95, 0.52)
-fallback.AnchorPoint = Vector2.new(0.5, 0.5)
-fallback.Position = UDim2.fromScale(0.5, 0.51)
-fallback.TextScaled = true
-fallback.Font = Enum.Font.GothamBlack
-gradient(fallback, -12)
 
 local stars = {}
 for i = 1, 6 do
@@ -252,28 +243,56 @@ for i = 1, (mobile and 27 or 40) do
     }
 end
 
--- Border gradients rotate continuously between the colors in the artwork.
+-- A thicker outline, broad inward falloff and travelling lights form the frame.
+-- All four sides use the same pixel depth, including in portrait orientation.
+local borderHalo = frame(root, "BorderHalo", 24)
+borderHalo.Position = UDim2.fromOffset(3, 3)
+borderHalo.Size = UDim2.new(1, -6, 1, -6)
+corner(borderHalo, 14)
+local haloStroke, haloAlpha = stroke(borderHalo, 10, 0.15, WHITE)
+local haloGradient = gradient(haloStroke, 0)
 local border = frame(root, "AnimatedBorder", 25)
-border.Position = UDim2.fromOffset(2, 2)
-border.Size = UDim2.new(1, -4, 1, -4)
-corner(border, 10)
-local borderStroke = stroke(border, 1.6, 0.85, WHITE)
+border.Position = UDim2.fromOffset(3, 3)
+border.Size = UDim2.new(1, -6, 1, -6)
+corner(border, 14)
+local borderStroke = stroke(border, 3, 0.96, WHITE)
 local borderGradient = gradient(borderStroke, 0)
-local edges = {}
+local edges, edgeLights, inwardWaves = {}, {}, {}
+local EDGE_PHASES = { 0, 0.50, 0.75, 0.25 }
+local EDGE_FADE = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0),
+    NumberSequenceKeypoint.new(0.12, 0.18),
+    NumberSequenceKeypoint.new(0.32, 0.49),
+    NumberSequenceKeypoint.new(0.58, 0.79),
+    NumberSequenceKeypoint.new(0.82, 0.96),
+    NumberSequenceKeypoint.new(1, 1),
+})
+local function edgePlacement(f, side)
+    f.AnchorPoint = Vector2.new(side == 4 and 1 or 0, side == 2 and 1 or 0)
+    f.Position = UDim2.fromScale(side == 4 and 1 or 0, side == 2 and 1 or 0)
+end
 for i = 1, 4 do
-    local f, a = frame(root, "EdgeGlow" .. i, 20, VIOLET, 0.24)
-    if i == 1 or i == 2 then
-        f.Size = UDim2.fromScale(1, 0.10)
-        f.Position = UDim2.fromScale(0, i == 1 and 0 or 0.90)
-    else
-        f.Size = UDim2.fromScale(0.048, 1)
-        f.Position = UDim2.fromScale(i == 3 and 0 or 0.952, 0)
+    local f, a = frame(root, "EdgeGlow" .. i, 20, VIOLET, 0.36)
+    local core, coreAlpha = frame(root, "EdgeCore" .. i, 21, CYAN, 0.18)
+    edgePlacement(f, i)
+    edgePlacement(core, i)
+    local rotation = ({ 90, 270, 0, 180 })[i]
+    gradient(f, rotation, ColorSequence.new(WHITE), EDGE_FADE)
+    gradient(core, rotation, ColorSequence.new(WHITE), EDGE_FADE)
+    edges[#edges + 1] = { frame = f, alpha = a, core = core, coreAlpha = coreAlpha, horizontal = i <= 2 }
+    for n = 1, 2 do
+        local light, lightAlpha = frame(root, "EdgeLight" .. i .. "_" .. n, 26, WHITE, 0.58)
+        light.AnchorPoint = Vector2.new(0.5, 0.5)
+        gradient(light, i <= 2 and 0 or 90, ColorSequence.new(WHITE), SOFT)
+        edgeLights[#edgeLights + 1] = { frame = light, alpha = lightAlpha, side = i, offset = (n - 1) * 0.5 + i * 0.13 }
     end
-    gradient(f, ({ 90, 270, 0, 180 })[i], ColorSequence.new(WHITE), NumberSequence.new({
-        NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.22, 0.38),
-        NumberSequenceKeypoint.new(0.58, 0.84), NumberSequenceKeypoint.new(1, 1),
-    }))
-    edges[#edges + 1] = { frame = f, alpha = a }
+end
+for i = 1, 2 do
+    local f = frame(root, "InwardSplash" .. i, 23)
+    corner(f, 16)
+    local s, a = stroke(f, 1.5, 0, WHITE)
+    local g = gradient(s, i * 85)
+    inwardWaves[#inwardWaves + 1] = { frame = f, alpha = a, gradient = g }
 end
 
 local barHolder = frame(root, "LoadingBar", 30)
@@ -317,7 +336,7 @@ local clickCatcher = node("TextButton", {
     Modal = true, Selectable = false, ZIndex = 100,
 }, root)
 
-local W, H, centerX, centerY, logoWidth, orbitSize, imageW, imageH, backgroundX
+local W, H, centerX, centerY, logoWidth, orbitSize, imageW, imageH, backgroundX, edgeDepth
 local portrait = false
 local function layout()
     W, H = root.AbsoluteSize.X, root.AbsoluteSize.Y
@@ -327,8 +346,16 @@ local function layout()
     centerY = H * (portrait and 0.56 or 0.435)
     logoWidth = portrait and W * 0.86 or math.min(W * 0.46, H * 1.17)
     orbitSize = portrait and math.min(W * 0.82, H * 0.42) or math.min(W * 0.38, H * 0.75)
-    logoHolder.Size = UDim2.fromOffset(logoWidth, logoWidth * 941 / 1672)
+    logoHolder.Size = UDim2.fromOffset(logoWidth, logoWidth * 864 / 1536)
     aura.Size = UDim2.fromOffset(orbitSize, orbitSize)
+    edgeDepth = clamp(math.min(W, H) * CONFIG.FrameDepth, 36, 170)
+    for _, edge in ipairs(edges) do
+        edge.frame.Size = edge.horizontal and UDim2.new(1, 0, 0, edgeDepth) or UDim2.new(0, edgeDepth, 1, 0)
+        edge.core.Size = edge.horizontal and UDim2.new(1, 0, 0, edgeDepth * 0.30) or UDim2.new(0, edgeDepth * 0.30, 1, 0)
+    end
+    for _, light in ipairs(edgeLights) do
+        light.frame.Size = light.side <= 2 and UDim2.fromOffset(W * 0.23, 3) or UDim2.fromOffset(3, H * 0.28)
+    end
     local barWidth = portrait and W * 0.80 or math.min(W * 0.48, 760)
     local barHeight = clamp(H * 0.016, 10, 16)
     barHolder.Size = UDim2.fromOffset(barWidth, barHeight)
@@ -367,66 +394,20 @@ connections[#connections + 1] = clickCatcher.Activated:Connect(function()
     hint.Text = "Welcome"
 end)
 
--- Images resolve independently; HTTP and PreloadAsync never gate the timer.
-local getAsset = getcustomasset or getsynasset
-local writeFile, readFile, fileExists = writefile, readfile, isfile
-local requestHttp = request or http_request
-if not requestHttp and type(syn) == "table" then requestHttp = syn.request end
-local PNG_SIGNATURE = string.char(137, 80, 78, 71, 13, 10, 26, 10)
-local function validPNG(data)
-    return type(data) == "string" and #data > 32 and data:sub(1, 8) == PNG_SIGNATURE
-end
-local function download(url)
-    if type(requestHttp) == "function" then
-        local ok, result = pcall(requestHttp, { Url = url, Method = "GET" })
-        if ok and type(result) == "table" and tonumber(result.StatusCode) == 200 and validPNG(result.Body) then
-            return result.Body
-        end
-    end
-    local ok, result = pcall(function() return game:HttpGet(url) end)
-    if ok and validPNG(result) then return result end
-    return nil
-end
-local function toAssetId(id)
-    local value = tostring(id or "")
-    if value == "" or value == "0" then return nil end
-    if value:match("^%d+$") then return "rbxassetid://" .. value end
-    return value
-end
-local function resolveImage(key, configuredId)
-    local id = toAssetId(configuredId)
-    if id then return id end
-    if type(getAsset) ~= "function" or type(writeFile) ~= "function" then
-        return nil, "Set the Roblox asset IDs in CONFIG, or use a client with getcustomasset and writefile."
-    end
-    local path = "HzReyzn_LoadingScreens_" .. CONFIG.CacheVersion .. "_" .. key .. ".png"
-    if type(fileExists) == "function" and type(readFile) == "function" then
-        local ok, cached = pcall(function() return fileExists(path) and validPNG(readFile(path)) end)
-        if ok and cached then
-            local registered, content = pcall(getAsset, path)
-            if registered and type(content) == "string" and content ~= "" then return content end
-        end
-    end
-    local bytes = download(CONFIG.AssetBase .. key .. ".png")
-    if not bytes then return nil, "Could not download " .. key .. ".png; check the connection and try again." end
-    local ok, content = pcall(function()
-        writeFile(path, bytes)
-        return getAsset(path)
-    end)
-    if ok and type(content) == "string" and content ~= "" then return content end
-    return nil, "The client could not register " .. key .. ".png as an image."
-end
-local function loadImage(key, image, configuredId)
+-- Native asset IDs are assigned when each ImageLabel is constructed.
+-- Preloading is independent of the timer and never uses local files or HTTP.
+local function loadImage(key, image)
     imageJobs[#imageJobs + 1] = task.spawn(function()
-        local ok, content, problem = pcall(resolveImage, key, configuredId)
-        if not alive then return end
-        if not ok or not content then
-            warn("[Loading Screens] " .. tostring(problem or content))
-            return
-        end
-        local assigned, errorMessage = pcall(function() image.Image = content end)
-        if not assigned then warn("[Loading Screens] " .. tostring(errorMessage)); return end
-        local preloaded, preloadError = pcall(function() ContentProvider:PreloadAsync({ image }) end)
+        local preloaded, preloadError = pcall(function()
+            ContentProvider:PreloadAsync({ image }, function(asset, status)
+                if not alive then return end
+                if status == Enum.AssetFetchStatus.Success then
+                    imageLoaded[key] = true
+                else
+                    warn("[Loading Screens] Roblox could not load " .. key .. " (" .. tostring(asset) .. "): " .. tostring(status))
+                end
+            end)
+        end)
         if not alive then return end
         if image.IsLoaded then imageLoaded[key] = true end
         if not preloaded then warn("[Loading Screens] " .. tostring(preloadError)) end
@@ -474,7 +455,8 @@ connections[#connections + 1] = RunService.RenderStepped:Connect(function(dt)
     sheen.Position = UDim2.fromScale((t * 0.50) % 1.65 - 0.35, 0)
     fillGradient.Offset = Vector2.new(0.07 * math.sin(t * 0.7), 0)
     trackGradient.Rotation = (t * 22) % 360
-    borderGradient.Rotation = (t * 19) % 360
+    borderGradient.Rotation = (t * 30 + 9 * math.sin(t * 0.75)) % 360
+    haloGradient.Rotation = borderGradient.Rotation
     barGlow.BackgroundColor3 = colorAt(t * 0.07)
     barGlowAlpha.value = 0.12 + 0.03 * math.sin(t * 2)
     hintAlpha.value = state == "ready" and 0.68 + 0.25 * (0.5 + 0.5 * math.sin(t * 2)) or 0.72
@@ -482,16 +464,16 @@ connections[#connections + 1] = RunService.RenderStepped:Connect(function(dt)
     -- The completion pulse fires immediately at 100%, then every 3 seconds.
     -- Exiting stops further flashes and lets all existing visuals fade together.
     local pulseAge = readyAt and ((now - readyAt) % CONFIG.FlashInterval) or 10
-    if state == "closing" then pulseAge = 10 end
+    local flashAge = state == "closing" and 10 or pulseAge
     local flashPulse = 0
-    if pulseAge < 0.10 then
-        flashPulse = smooth(pulseAge / 0.10)
-    elseif pulseAge < 0.68 then
-        flashPulse = 1 - smooth((pulseAge - 0.10) / 0.58)
+    if flashAge < 0.10 then
+        flashPulse = smooth(flashAge / 0.10)
+    elseif flashAge < 0.68 then
+        flashPulse = 1 - smooth((flashAge - 0.10) / 0.58)
     end
     flashAlpha.value = CONFIG.FlashOpacity * flashPulse
-    local splash = pulseAge < 1.4 and 0.145 * math.exp(-4.2 * pulseAge) * math.sin(7.2 * pulseAge) or 0
-    logoScale.Scale = (1 + 0.006 * math.sin(t * 1.6) + splash) * (1 + smooth(exit) * 0.035)
+    local splash = pulseAge < 1.4 and 0.16 * math.exp(-4.2 * pulseAge) * math.sin(7.2 * pulseAge) or 0
+    logoScale.Scale = (1 + 0.010 * math.sin(t * 1.6) + splash) * (1 + smooth(exit) * 0.035)
     for i, wave in ipairs(waves) do
         local age = pulseAge - (i - 1) * 0.17
         local phase = clamp(age / 1.25, 0, 1)
@@ -511,8 +493,8 @@ connections[#connections + 1] = RunService.RenderStepped:Connect(function(dt)
     pointerX = pointerX + (targetX - pointerX) * damping
     pointerY = pointerY + (targetY - pointerY) * damping
     background.Position = UDim2.fromOffset(backgroundX + math.sin(t * 0.24) * W * 0.003 - pointerX * 7, H / 2 + math.sin(t * 0.29) * H * 0.003 - pointerY * 5)
-    logoHolder.Position = UDim2.fromOffset(centerX + pointerX * 8, centerY + math.sin(t * 1.25) * 3 + pointerY * 5 - splash * 18)
-    logoHolder.Rotation = 0.50 * math.sin(t * 0.65)
+    logoHolder.Position = UDim2.fromOffset(centerX + pointerX * 8, centerY + math.sin(t * 1.25) * 5 + pointerY * 5 - splash * 23)
+    logoHolder.Rotation = 0.65 * math.sin(t * 0.65)
     aura.Position = UDim2.fromOffset(centerX - pointerX * 3, centerY)
     for i, ring in ipairs(rings) do
         ring.gradient.Rotation = (i * 75 + t * (i % 2 == 0 and -13 or 11)) % 360
@@ -524,9 +506,40 @@ connections[#connections + 1] = RunService.RenderStepped:Connect(function(dt)
         light.frame.Position = UDim2.fromScale(0.5 + math.cos(angle) * light.radius, 0.5 + math.sin(angle) * light.radius)
         light.alpha.value = 0.30 + 0.26 * (0.5 + 0.5 * math.sin(t * 1.3 + i))
     end
+    local edgePulse = pulseAge < 1.65 and math.sin(math.pi * pulseAge / 1.65) ^ 2 or 0
+    borderStroke.Thickness = 3 + 0.7 * edgePulse
+    haloStroke.Thickness = 10 + 5 * edgePulse
+    haloAlpha.value = 0.15 + 0.045 * edgePulse
     for i, edge in ipairs(edges) do
-        edge.frame.BackgroundColor3 = colorAt(t * 0.042 + i * 0.23)
-        edge.alpha.value = 0.23 + 0.045 * math.sin(t * 1.2 + i)
+        local c = colorAt(t * 0.066 + EDGE_PHASES[i])
+        local depth = edgeDepth * (1 + 0.06 * math.sin(t * 1.1 + i * 0.8) + 0.22 * edgePulse)
+        edge.frame.Size = edge.horizontal and UDim2.new(1, 0, 0, depth) or UDim2.new(0, depth, 1, 0)
+        edge.core.Size = edge.horizontal and UDim2.new(1, 0, 0, depth * 0.30) or UDim2.new(0, depth * 0.30, 1, 0)
+        edge.frame.BackgroundColor3 = c
+        edge.core.BackgroundColor3 = c:Lerp(WHITE, 0.28)
+        edge.alpha.value = 0.36 + 0.035 * math.sin(t * 1.2 + i) + 0.08 * edgePulse
+        edge.coreAlpha.value = 0.18 + 0.05 * edgePulse
+    end
+    for _, light in ipairs(edgeLights) do
+        local phase = (t * 0.085 + light.offset) % 1
+        local travel = -0.30 + 1.60 * phase
+        if light.side == 2 or light.side == 3 then travel = 1 - travel end
+        if light.side <= 2 then
+            light.frame.Position = UDim2.fromOffset(W * travel, light.side == 1 and 3 or H - 3)
+        else
+            light.frame.Position = UDim2.fromOffset(light.side == 3 and 3 or W - 3, H * travel)
+        end
+        light.frame.BackgroundColor3 = colorAt(t * 0.09 + light.offset):Lerp(WHITE, 0.58)
+        light.alpha.value = 0.52 + 0.15 * edgePulse
+    end
+    for i, wave in ipairs(inwardWaves) do
+        local age = pulseAge - (i - 1) * 0.24
+        local phase = clamp(age / 1.7, 0, 1)
+        local inset = 4 + math.min(W, H) * 0.085 * smooth(phase)
+        wave.frame.Position = UDim2.fromOffset(inset, inset)
+        wave.frame.Size = UDim2.new(1, -inset * 2, 1, -inset * 2)
+        wave.alpha.value = age >= 0 and age < 1.7 and 0.25 * math.sin(math.pi * phase) ^ 2 * (1 - phase) or 0
+        wave.gradient.Rotation = borderGradient.Rotation + i * 50
     end
     for i, ribbon in ipairs(ribbons) do
         ribbon.Position = UDim2.fromScale(((t * 0.032 + i * 0.42) % 1.8) - 0.4, 0.20 + i * 0.17)
@@ -548,15 +561,14 @@ connections[#connections + 1] = RunService.RenderStepped:Connect(function(dt)
     for key, loaded in pairs(imageLoaded) do
         if loaded then imageOpacity[key] = math.min(1, imageOpacity[key] + math.min(dt, 0.1) / 0.32) end
     end
-    fallbackAlpha.value = 1 - imageOpacity.logo
     for _, item in ipairs(fades) do
         local assetOpacity = item.asset and imageOpacity[item.asset] or 1
         item.object[item.property] = 1 - clamp(item.value * visibility * assetOpacity, 0, 1)
     end
 end)
 
-loadImage("background", background, CONFIG.BackgroundAssetId)
-loadImage("logo", logo, CONFIG.LogoAssetId)
+loadImage("background", background)
+loadImage("logo", logo)
 
 -- An optional handle is returned to callers using loadstring(... )().
 return {
