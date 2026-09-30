@@ -11,8 +11,8 @@ local CONFIG = {
     ExitTime = 2.1,
     FlashInterval = 3,
     FlashOpacity = 0.10,
-    BackgroundAssetId = "rbxassetid://89640728908311",
-    LogoAssetId = "rbxassetid://80679809117691",
+    BackgroundAssetId = "rbxassetid://140355133234661",
+    LogoAssetId = "rbxassetid://93145428010468",
     FrameDepth = 0.18, -- inward glow depth relative to the shorter screen edge
 }
 
