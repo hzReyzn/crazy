@@ -1,90 +1,87 @@
-# HzReyzn Shaders 2.0
+# S&NC Shaders 3.0
 
-The standalone shader controller used by HzReyzn Hub. Running it opens a draggable,
-minimizable interface; no lighting or weather starts until a mode is selected.
-
-```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/hzReyzn/crazy/main/HzReyzn_Shaders.lua"))()
-```
-
-## Modes
-
-- Classic: Noon, Sunrise, Sunset, Night, Rain, Snowfall.
-- Real Time: Sunrise → Noon → Sunset → Night, with gradual transitions.
-- **Especial Shaders 💎**: Meteor Shower, Starfall, Aurora Sky, Deep Space.
-- Meteor Shower and Starfall use luminous, animated streaks in the sky. Aurora Sky
-  uses moving curtains. Deep Space includes a spiral galaxy, nebula glow, planets,
-  a moon and planetary rings. These are cosmetic local effects.
-
-## Improvements
-
-- Switching modes keeps one environment snapshot and blends from the current
-  appearance, avoiding a reset to the game's lighting between selections.
-- Noon now uses daytime lighting. Night retains visibility; sunrise and sunset
-  keep their distinct colors and smooth interpolation.
-- Rain and snow reach their atmospheric settings in 3.5 and 4 seconds. More drops
-  spawn near the player, with a maximum footprint of 100 studs.
-- Weather movement updates with rendered frames. Rain opacity sequences are
-  reused, and snow geometry is lighter. Ground effects and particles use pools.
-- Quality can be Low, Balanced or High; touch devices default to Balanced.
-- The interface scrolls on short screens and supports touch dragging, minimizing
-  and restoring through the HZ button.
-- Default or closing restores the original lighting, sky, clouds and post effects.
-  Camera replacement, character respawn and re-execution are handled.
-- Game post effects added or re-enabled while a shader is active are temporarily
-  disabled and their prior enabled state is restored afterward.
-- Random weather retains the original 1% check every five seconds while a classic
-  sky mode is selected. It can now be switched off; it does not interrupt specials.
-- Audio loads asynchronously with a timeout. Switching, muting or closing cancels
-  stale playback; missing audio never prevents the visual mode from running.
-
-## Sound
-
-The six original Ogg Vorbis soundscapes in `assets/shaders/` accompany Rain,
-Snowfall, Meteor Shower, Starfall, Aurora Sky and Deep Space. Each loops for
-12 seconds. The interface includes mute and volume controls.
-
-The raw executable loads these files with `game:HttpGet`, `writefile` and
-`getcustomasset` (or `getsynasset`) when those capabilities are available.
-It caches only its own `HzReyznShaders_v2_*.ogg` files. If custom assets are
-unavailable, the interface reports **Audio unavailable**, and the visuals continue.
-The soundscapes provide ambience, not per-meteor synchronized impacts.
-
-For a Studio LocalScript or an environment without custom assets, supply sound IDs
-that the experience is permitted to use. The script itself can be pasted into a
-LocalScript in `StarterPlayerScripts`; the HTTP/loadstring launcher is not a
-standard Roblox LocalScript API.
+Controlador visual independiente de Roblox, también disponible desde HzReyzn Hub.
+La interfaz se abre sin activar ningún shader automáticamente.
 
 ```lua
--- Optional, before running the standalone source:
-local environment = type(getgenv) == "function" and getgenv() or _G
-environment.HzReyznShaderOptions = {
-    Quality = "Balanced", -- Low / Balanced / High
-    Sound = true,
-    Volume = 0.3,
-    SoundIds = {
-        -- ["Aurora Sky"] = "rbxassetid://YOUR_PERMITTED_AUDIO_ID",
-        -- ["Deep Space"] = "rbxassetid://YOUR_PERMITTED_AUDIO_ID",
-    },
-}
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hzReyzn/crazy/main/SNC_Shaders.lua"))()
 ```
 
-The returned controller provides `SetMode`, `Default`, `Destroy`, `Show`,
-`SetQuality`, `SetSound`, `SetAutoWeather` and `GetState` methods.
+La ruta anterior `HzReyzn_Shaders.lua` sigue funcionando y abre esta versión.
 
-## Validation
+## Cambios
 
-Checked Lua syntax and exercised all ten selectable effects in a mocked Roblox
-runtime, including Real Time, switching, quality levels, ground raycasts, respawn,
-camera replacement, newly added effects, audio failure/cancellation, repeated
-execution and complete cleanup. All six Ogg files were decoded successfully.
+- Interfaz negro carbón, bordes blancos, nombre **S&NC Shaders** e icono **SC**.
+  Arrastre suavizado, expansión horizontal, minimización a SC y cierre animado.
+- Carga con barra y porcentaje. Al llegar al 100%, viaje dimensional de cinco
+  segundos, seguido de un desvanecimiento. No altera la cámara del juego.
+- Noon, Sunrise, Sunset y Night tienen ajustes de atmósfera, color y luz.
+- **Rain y Snowfall conservan sus perfiles, simulación, límites, partículas y
+  ajustes anteriores. El controlador de sonido y los seis audios no se modifican.**
+- Se elimina el selector de calidad. Los especiales tienen detalle completo fijo.
+  Los ajustes internos anteriores de lluvia y nieve se mantienen para respetar
+  la petición de no cambiarlos, incluyendo su configuración para dispositivos táctiles.
 
-This environment cannot run Roblox or render its lighting. Visual appearance,
-device frame rate, texture availability and audio support still need an in-game
-check. Roblox graphics settings and the host experience can affect the result.
+## Especial Shaders 💎
 
-Reference APIs: [Beam](https://create.roblox.com/docs/reference/engine/classes/Beam),
-[Lighting](https://create.roblox.com/docs/reference/engine/classes/Lighting),
-[audio assets](https://create.roblox.com/docs/audio/assets).
+- **Meteor Shower:** caída continua aleatoria dentro de un radio horizontal de
+  450 studs alrededor del personaje, cabezas luminosas, estelas, chispas,
+  iluminación cercana y destellos de impacto. Sin daño ni cambios de física.
+- **Starfall:** caída continua en el mismo radio, estelas blancas visibles,
+  halos fríos, partículas y destellos locales.
+- **Aurora Sky:** tres cortinas amplias con filamentos, ondas suaves y gradación
+  verde, cian y violeta sobre un cielo estrellado oscuro.
+- **Deep Space:** cielo negro sin niebla, galaxia, planeta con anillos, planeta
+  helado y recreación visual de **TON 618**, con disco de acreción y arco luminoso.
+  Los cuerpos se colocan frente a la dirección inicial de la cámara; después
+  conservan su orientación para que puedas mirar alrededor.
+
+TON 618 es una interpretación artística inspirada en visualizaciones ópticas de
+agujeros negros; no es una fotografía ni una simulación relativista completa.
+Las texturas astronómicas se generaron para este proyecto. Referencia conceptual:
+[visualización de NASA](https://www.nasa.gov/universe/nasa-visualization-shows-a-black-holes-warped-world/).
+
+Los proyectiles utilizan conjuntos reutilizables de objetos y raycasts. Las
+cortinas y los cuerpos celestes se animan con un límite de 30 actualizaciones por
+segundo; la caída y la interfaz siguen los fotogramas renderizados.
+
+## Recursos y compatibilidad
+
+El ejecutable descarga las texturas de `assets/snc/` y los audios existentes de
+`assets/shaders/`. Utiliza `game:HttpGet`, `writefile` y `getcustomasset` (o
+`getsynasset`) cuando están disponibles. Guarda las texturas en sus propios
+archivos `SNCShaders_r3_*.png`; los audios mantienen sus archivos de caché v2.
+
+Estas funciones del lanzador no son APIs estándar de un LocalScript de Roblox.
+Si faltan los recursos personalizados, los efectos geométricos pueden continuar,
+pero no aparecerán las imágenes astronómicas. Para usarlos en una experiencia de
+Studio se deben subir las imágenes y sonidos como assets permitidos y adaptar
+sus identificadores. Los audios también aceptan los SoundIds configurables
+anteriores mediante `getgenv().HzReyznShaderOptions`.
+
+Las descargas se realizan en segundo plano. La carga inicial espera como máximo
+12 segundos antes de iniciar el viaje; los recursos que terminen después se
+incorporan cuando estén disponibles. Un fallo de audio no bloquea los shaders.
+
+Default y cerrar restauran el entorno anterior. Se conservan Real Time, clima
+aleatorio, volumen, silencio, restauración del shader anterior y protección
+contra interfaces duplicadas al volver a ejecutar.
+
+El controlador devuelto ofrece `SetMode`, `Default`, `Destroy`, `Show`,
+`SetSound`, `SetAutoWeather` y `GetState`.
+
+## Verificación
+
+Sintaxis comprobada y pruebas en un entorno simulado de Roblox: diez efectos,
+cambios repetidos, restauración del entorno, raycasts, respawn, reemplazo de
+cámara, limpieza de conexiones, fallos de red, sonidos y reejecución. También
+se comprobó la secuencia de carga, sus cinco segundos de viaje y las acciones
+de expansión y minimización. Los bloques protegidos de lluvia, nieve y audio
+se compararon con la versión 2.0 y permanecen iguales.
+
+Estas pruebas no renderizan Roblox. El aspecto final, la disponibilidad de
+texturas y los FPS necesitan una comprobación dentro del juego. Los efectos no
+pueden forzar la calidad gráfica elegida en el cliente ni reemplazar su motor
+de renderizado.
 
 Made by hzReyzn.
